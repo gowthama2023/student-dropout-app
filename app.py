@@ -14,6 +14,16 @@ def load_model():
 
 model = load_model()
 
+# Expected feature order (from training script)
+expected_order = [
+    "Curricular units 2nd sem (approved)",
+    "Tuition fees up to date",
+    "Curricular units 1st sem (approved)",
+    "Course",
+    "Age at enrollment",
+    "Scholarship holder"
+]
+
 # ===============================
 # 2) Streamlit UI
 # ===============================
@@ -23,22 +33,25 @@ st.title("🎓 AI-based Student Dropout Prediction & Counselling System")
 st.write("Enter student details to predict dropout risk and get tailored counselling suggestions.")
 
 # Input fields (based on top 6 SHAP features)
-course = st.selectbox("📘 Course", [1, 2, 3, 4, 5], help="Numeric code for course chosen")
-tuition = st.selectbox("💰 Tuition Fees Up to Date", [0, 1], help="1 = Yes, 0 = No")
-curr_units_1 = st.number_input("✅ Curricular Units 1st Sem (Approved)", min_value=0, max_value=20, value=5)
-curr_units_2 = st.number_input("✅ Curricular Units 2nd Sem (Approved)", min_value=0, max_value=20, value=5)
-age = st.number_input("🎂 Age at Enrollment", min_value=16, max_value=60, value=20)
-scholarship = st.selectbox("🎓 Scholarship Holder", [0, 1], help="1 = Yes, 0 = No")
+course = st.number_input("Course Code", min_value=0, max_value=9999, value=1, help="Numeric code for course chosen")
+tuition = st.selectbox("Tuition Fees Up to Date", [0, 1], help="1 = Yes, 0 = No")
+curr_units_1 = st.number_input("Curricular Units 1st Sem (Approved)", min_value=0, max_value=20, value=5)
+curr_units_2 = st.number_input("Curricular Units 2nd Sem (Approved)", min_value=0, max_value=20, value=5)
+age = st.number_input("Age at Enrollment", min_value=16, max_value=60, value=20)
+scholarship = st.selectbox("Scholarship Holder", [0, 1], help="1 = Yes, 0 = No")
 
-# Convert inputs to DataFrame
+# Convert inputs to DataFrame with correct names
 input_data = pd.DataFrame({
-    "Course": [course],
+    "Curricular units 2nd sem (approved)": [curr_units_2],
     "Tuition fees up to date": [tuition],
     "Curricular units 1st sem (approved)": [curr_units_1],
-    "Curricular units 2nd sem (approved)": [curr_units_2],
+    "Course": [course],
     "Age at enrollment": [age],
     "Scholarship holder": [scholarship]
 })
+
+# Ensure correct column order
+input_data = input_data[expected_order]
 
 # ===============================
 # 3) Prediction
@@ -71,7 +84,6 @@ if st.button("🔮 Predict Dropout Risk"):
     # ===============================
     st.subheader("💡 Counselling Recommendations")
 
-    # Map of suggestions
     suggestions = []
     if tuition == 0:
         suggestions.append("📌 Encourage the student to update tuition fee payments; financial aid or payment plans may help.")
