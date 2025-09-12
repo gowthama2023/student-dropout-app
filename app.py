@@ -24,6 +24,12 @@ expected_order = [
     "Scholarship holder"
 ]
 
+# Label mapping (binary classification)
+label_map = {
+    0: "Graduate",
+    1: "Dropout"
+}
+
 # ===============================
 # 2) Streamlit UI
 # ===============================
@@ -60,43 +66,46 @@ if st.button("🔮 Predict Dropout Risk"):
     pred = model.predict(input_data)[0]
     prob = model.predict_proba(input_data)[0]
 
-    # Show results
+    # Show results with label mapping
     st.subheader("✅ Prediction Result")
-    st.write(f"**Predicted Class:** {pred}")
+    st.write(f"**Predicted Class:** {label_map[pred]}")
     st.write("**Probabilities:**")
-    st.json({f"Class {i}": float(p) for i, p in enumerate(prob)})
+    st.json({
+        "Graduate": float(prob[0]),
+        "Dropout": float(prob[1])
+    })
 
     # ===============================
-    # 4) SHAP Explainability
+    # 4) Show Explainability & Suggestions only if Dropout
     # ===============================
-    st.subheader("🔍 Why this prediction?")
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer(input_data)
+    if pred == 1:  # Dropout
+        # SHAP Explainability
+        st.subheader("🔍 Why this prediction?")
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer(input_data)
 
-    # Waterfall plot
-    shap.plots.waterfall(shap_values[0], show=False)
-    plt.tight_layout()
-    st.pyplot(bbox_inches="tight")
+        shap.plots.waterfall(shap_values[0], show=False)
+        plt.tight_layout()
+        st.pyplot(bbox_inches="tight")
 
-    # ===============================
-    # 5) Counselling Suggestions
-    # ===============================
-    st.subheader("💡 Counselling Recommendations")
+        # Counselling Suggestions
+        st.subheader("💡 Counselling Recommendations")
+        suggestions = []
+        if tuition == 0:
+            suggestions.append("📌 Encourage the student to update tuition fee payments; financial aid or payment plans may help.")
+        if curr_units_1 < 4:
+            suggestions.append("📌 Provide extra tutoring or academic mentoring for 1st semester courses.")
+        if curr_units_2 < 4:
+            suggestions.append("📌 Monitor performance in 2nd semester and suggest study groups or remedial sessions.")
+        if age > 30:
+            suggestions.append("📌 Older students may face work–study balance issues; offer flexible schedules or counselling.")
+        if scholarship == 0:
+            suggestions.append("📌 Explore scholarship opportunities or need-based grants to reduce financial stress.")
 
-    suggestions = []
-    if tuition == 0:
-        suggestions.append("📌 Encourage the student to update tuition fee payments; financial aid or payment plans may help.")
-    if curr_units_1 < 4:
-        suggestions.append("📌 Provide extra tutoring or academic mentoring for 1st semester courses.")
-    if curr_units_2 < 4:
-        suggestions.append("📌 Monitor performance in 2nd semester and suggest study groups or remedial sessions.")
-    if age > 30:
-        suggestions.append("📌 Older students may face work–study balance issues; offer flexible schedules or counselling.")
-    if scholarship == 0:
-        suggestions.append("📌 Explore scholarship opportunities or need-based grants to reduce financial stress.")
-
-    if not suggestions:
-        st.write("✅ Student appears low-risk. Continue regular academic monitoring.")
+        if not suggestions:
+            st.write("📌 General counselling is advised, but no major risk indicators found.")
+        else:
+            for s in suggestions:
+                st.write(s)
     else:
-        for s in suggestions:
-            st.write(s)
+        st.success("🎉 Student is predicted to Graduate — no counselling needed.")
