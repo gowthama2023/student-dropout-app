@@ -74,7 +74,6 @@ if st.button("🔮 Predict Dropout Risk"):
     shap_values = explainer(input_data)
 
     # Waterfall plot
-    st.set_option('deprecation.showPyplotGlobalUse', False)
     shap.plots.waterfall(shap_values[0], show=False)
     plt.tight_layout()
     st.pyplot(bbox_inches="tight")
