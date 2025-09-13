@@ -137,12 +137,12 @@ if st.session_state.page == "home":
 elif st.session_state.page == "predict":
     st.sidebar.header("📝 Student Details")
 
-    # 🔹 Sample Profiles
     sample_profiles = {
-        "📉 High Risk": {"course": 101, "tuition": 0, "curr_units_1": 2, "curr_units_2": 3, "age": 28, "scholarship": 0},
-        ⚖️ Medium Risk": {"course": 205, "tuition": 1, "curr_units_1": 4, "curr_units_2": 5, "age": 24, "scholarship": 0},
-        "📈 Low Risk": {"course": 305, "tuition": 1, "curr_units_1": 8, "curr_units_2": 10, "age": 20, "scholarship": 1}
-    }
+    "📉 High Risk": {"course": 101, "tuition": 0, "curr_units_1": 2, "curr_units_2": 3, "age": 28, "scholarship": 0},
+    "⚖️ Medium Risk": {"course": 205, "tuition": 1, "curr_units_1": 4, "curr_units_2": 5, "age": 24, "scholarship": 0},
+    "📈 Low Risk": {"course": 305, "tuition": 1, "curr_units_1": 8, "curr_units_2": 10, "age": 20, "scholarship": 1}
+}
+
     profile_choice = st.sidebar.selectbox("📂 Load Sample Profile", ["Custom Input"] + list(sample_profiles.keys()))
 
     # Load defaults
