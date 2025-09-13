@@ -116,11 +116,11 @@ if st.session_state.page == "home":
     # Centered Project Overview
     st.markdown("""
         <div style="text-align:center;font-size:1.2em;color:#eee;padding:15px;">
-        ### 🔍 Project Overview  
-        This system uses **AI-powered predictive analytics** to:  
+         🔍 Project Overview  
+        This system uses AI-powered predictive analytics to:  
         - Flag students at risk of dropping out  
         - Explain contributing factors (via SHAP)  
-        - Suggest **tailored counselling** strategies  
+        - Suggest tailored counselling strategies  
         </div>
     """, unsafe_allow_html=True)
 
