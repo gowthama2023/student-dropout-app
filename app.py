@@ -190,7 +190,6 @@ elif st.session_state.page == "predict":
             st.subheader("Why this prediction?")
             explainer = shap.TreeExplainer(model)
             shap_values = explainer(input_data)
-            st.set_option('deprecation.showPyplotGlobalUse', False)
             shap.plots.waterfall(shap_values[0], show=False)
             plt.tight_layout()
             st.pyplot(bbox_inches="tight")
