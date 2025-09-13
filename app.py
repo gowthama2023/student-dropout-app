@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import shap
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # ===============================
 # 0) Initialize Session State
@@ -37,6 +38,11 @@ st.set_page_config(page_title="Dropout Prediction System", layout="wide")
 
 st.markdown("""
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        html, body, [class*="css"] {
+            font-family: 'Orbitron', sans-serif;
+        }
+
         /* Cyberpunk Background Animation */
         @keyframes matrix {
             0% { background-position: 0 0; }
@@ -86,14 +92,101 @@ st.markdown("""
         }
 
         .big-button {display:flex;justify-content:center;margin:30px 0;}
-        .prediction-box {padding:20px;border-radius:12px;text-align:center;font-size:22px;font-weight:bold;}
-        .graduate {background-color:#e8f9e9;color:#1e7e34;border:2px solid #28a745;}
-        .dropout {background-color:#fdeaea;color:#b71c1c;border:2px solid #dc3545;}
+        .prediction-box {
+            padding:20px;
+            border-radius:12px;
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
+            margin-bottom:20px;
+        }
+        .graduate {
+            background:rgba(0,255,231,0.1);
+            color:#00ffe7;
+            border:2px solid #00ffe7;
+            box-shadow:0 0 15px #00ffe7;
+        }
+        .dropout {
+            background:rgba(255,0,127,0.1);
+            color:#ff007f;
+            border:2px solid #ff007f;
+            box-shadow:0 0 15px #ff007f;
+        }
+        .neon-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 0 20px rgba(0,255,231,0.4);
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # ===============================
-# 3) Home Page
+# 3) Custom Visualizations
+# ===============================
+def plot_probability_pie(prob):
+    fig = go.Figure(data=[go.Pie(
+        labels=["Graduate 🎓", "Dropout ⚠️"],
+        values=[prob[0], prob[1]],
+        hole=0.4,
+        marker=dict(colors=["#00ffe7", "#ff007f"]),
+        textinfo="label+percent"
+    )])
+    fig.update_layout(
+        showlegend=False,
+        margin=dict(t=20, b=20, l=20, r=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white")
+    )
+    return fig
+
+def plot_dropout_gauge(prob):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=prob[1]*100,
+        title={"text": "Dropout Risk 🔮", "font": {"size": 20, "color": "white"}},
+        gauge={
+            "axis": {"range": [0, 100], "tickcolor": "white"},
+            "bar": {"color": "#ff007f"},
+            "bgcolor": "black",
+            "borderwidth": 2,
+            "bordercolor": "#00ffe7",
+            "steps": [
+                {"range": [0, 30], "color": "green"},
+                {"range": [30, 70], "color": "orange"},
+                {"range": [70, 100], "color": "red"}
+            ]
+        }
+    ))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white")
+    )
+    return fig
+
+def plot_top_features(shap_values, input_data, top_n=5):
+    values = shap_values.values[0]
+    feature_names = input_data.columns
+    top_idx = abs(values).argsort()[-top_n:][::-1]
+
+    fig = go.Figure(go.Bar(
+        x=[values[i] for i in top_idx],
+        y=[feature_names[i] for i in top_idx],
+        orientation="h",
+        marker=dict(color="#00ffe7")
+    ))
+    fig.update_layout(
+        title="Top Feature Impacts ⚡",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        margin=dict(t=40, b=20, l=80, r=20)
+    )
+    return fig
+
+# ===============================
+# 4) Home Page
 # ===============================
 if st.session_state.page == "home":
     st.markdown("""
@@ -109,13 +202,13 @@ if st.session_state.page == "home":
     col1, col2, col3 = st.columns(3)
     with col1: st.metric("📊 Dataset", "UCI Student Data")
     with col2: st.metric("🤖 Model", "XGBoost")
-    with col3: st.metric("📈 Accuracy", "≈ 89%")  # ✅ Updated
+    with col3: st.metric("📈 Accuracy", "≈ 89%")
 
     st.write("---")
 
     # Centered Project Overview
     st.markdown("""
-        <div style="text-align:center;font-size:1.2em;color:#eee;padding:15px;">
+        <div class="neon-card" style="text-align:center;font-size:1.2em;color:#eee;">
          🔍 Project Overview  
         This system uses AI-powered predictive analytics to:  
         - Flag students at risk of dropping out  
@@ -132,16 +225,16 @@ if st.session_state.page == "home":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ===============================
-# 4) Prediction Page
+# 5) Prediction Page
 # ===============================
 elif st.session_state.page == "predict":
     st.sidebar.header("📝 Student Details")
 
     sample_profiles = {
-    "📉 High Risk": {"course": 101, "tuition": 0, "curr_units_1": 2, "curr_units_2": 3, "age": 28, "scholarship": 0},
-    "⚖️ Medium Risk": {"course": 205, "tuition": 1, "curr_units_1": 4, "curr_units_2": 5, "age": 24, "scholarship": 0},
-    "📈 Low Risk": {"course": 305, "tuition": 1, "curr_units_1": 8, "curr_units_2": 10, "age": 20, "scholarship": 1}
-}
+        "📉 High Risk": {"course": 101, "tuition": 0, "curr_units_1": 2, "curr_units_2": 3, "age": 28, "scholarship": 0},
+        "⚖️ Medium Risk": {"course": 205, "tuition": 1, "curr_units_1": 4, "curr_units_2": 5, "age": 24, "scholarship": 0},
+        "📈 Low Risk": {"course": 900, "tuition": 1, "curr_units_1": 8, "curr_units_2": 10, "age": 20, "scholarship": 1}
+    }
 
     profile_choice = st.sidebar.selectbox("📂 Load Sample Profile", ["Custom Input"] + list(sample_profiles.keys()))
 
@@ -175,16 +268,16 @@ elif st.session_state.page == "predict":
         tab1, tab2, tab3 = st.tabs(["📊 Prediction", "🔍 Explainability", "💡 Counselling"])
 
         with tab1:
-            st.subheader("Prediction Result")
             if pred == 1:
                 st.markdown(f'<div class="prediction-box dropout">⚠️ Predicted: Dropout</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="prediction-box graduate">🎉 Predicted: Graduate</div>', unsafe_allow_html=True)
 
-            st.write("### Probability Breakdown")
-            st.progress(float(prob[1]))
-            st.write(f"**Graduate:** {prob[0]*100:.1f}%")
-            st.write(f"**Dropout:** {prob[1]*100:.1f}%")
+            colA, colB = st.columns(2)
+            with colA:
+                st.plotly_chart(plot_probability_pie(prob), use_container_width=True)
+            with colB:
+                st.plotly_chart(plot_dropout_gauge(prob), use_container_width=True)
 
         with tab2:
             st.subheader("Why this prediction?")
@@ -193,6 +286,8 @@ elif st.session_state.page == "predict":
             shap.plots.waterfall(shap_values[0], show=False)
             plt.tight_layout()
             st.pyplot(bbox_inches="tight")
+
+            st.plotly_chart(plot_top_features(shap_values, input_data), use_container_width=True)
 
         with tab3:
             st.subheader("Tailored Counselling Recommendations")
